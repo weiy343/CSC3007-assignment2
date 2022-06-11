@@ -18,18 +18,21 @@ function drawSelect(data) {
 
 function drawChart(data, year) {
 
+    // Processing
     let filteredData = data.filter(function (d) { return +d.year == +year });
+    filteredData.sort(function (a, b) { return a.value - b.value; });
 
+    // Chart size settings
     var margin = { top: 20, right: 40, bottom: 100, left: 40 },
-        width = $("#main").width() - margin.right - margin.left;
-    height = 600 - margin.top - margin.bottom;
+        width = 800 - margin.right - margin.left;
+        height = 425 - margin.top - margin.bottom;
 
     var chart = d3.select("#chart")
         .append("svg")
         .attr('preserveAspectRatio', 'xMinYMin meet')
         .attr(
-          'viewBox',
-          '0 0 ' +
+            'viewBox',
+            '0 0 ' +
             (width + margin.left + margin.right) +
             ' ' +
             (height + margin.top + margin.bottom)
@@ -41,7 +44,7 @@ function drawChart(data, year) {
     var xScale = d3.scaleBand()
         .domain(filteredData.map(function (d) { return d.level_2; }))
         .range([0, width])
-        .padding(0.1);
+        .padding(0.2);
 
     var yScale = d3.scaleLinear()
         .domain([0, d3.max(filteredData, function (d) { return +d.value; })])
@@ -49,12 +52,28 @@ function drawChart(data, year) {
 
     // Add x-axis
     chart.append("g")
+        .data(filteredData)
         .attr("class", "x axis")
         .attr("transform", "translate(0," + height + ")")
         .call(d3.axisBottom(xScale))
         .selectAll("text")
         .style("text-anchor", "end")
-        .attr("transform", "rotate(-38)");
+        .attr("transform", "rotate(-38)")
+        .on("mouseover", function (e, d) {
+            let val = filteredData.filter(function (i) { return i.level_2 == d })[0].value
+            tooltip.html(`${val}`).style("visibility", "visible");
+            d3.select(this)
+                .attr("fill", "orange");
+        })
+        .on("mousemove", function () {
+            tooltip
+                .style("top", (event.pageY - 10) + "px")
+                .style("left", (event.pageX + 10) + "px");
+        })
+        .on("mouseout", function () {
+            tooltip.html(``).style("visibility", "hidden");
+            d3.select(this).attr("fill", "black");
+        });
 
     // Add y-axis
     chart.append("g")
@@ -86,7 +105,6 @@ function drawChart(data, year) {
         .attr("width", function (d) { return xScale.bandwidth(); })
         .attr("height", function (d) { return height - yScale(d.value); })
         .on("mouseover", function (e, d) {
-            console.log(d)
             tooltip.html(`${d.value}`).style("visibility", "visible");
             d3.select(this)
                 .attr("fill", "orange");
@@ -101,11 +119,20 @@ function drawChart(data, year) {
             d3.select(this).attr("fill", "black");
         });
 
+    // Updating chart
     $('#yearSelector').on('change', function () { update(this.value); });
 
     function update(year) {
 
+        // Processing
         let filteredData = data.filter(function (d) { return +d.year == +year });
+        filteredData.sort(function (a, b) { return a.value - b.value; });
+
+        // Add scales
+        var xScale = d3.scaleBand()
+            .domain(filteredData.map(function (d) { return d.level_2; }))
+            .range([0, width])
+            .padding(0.2);
 
         var yScale = d3.scaleLinear()
             .domain([0, d3.max(filteredData, function (d) { return +d.value; })])
@@ -126,6 +153,30 @@ function drawChart(data, year) {
             .duration(1000)
             .call(d3.axisLeft(yScale)
                 .ticks(10));
+
+        // update x axis
+        chart.select('.x.axis')
+            .transition()
+            .duration(1000)
+            .call(d3.axisBottom(xScale).ticks(10))
+
+        // update x axis text
+        chart.selectAll(".x.axis text")
+            .on("mouseover", function (e, d) {
+                let val = filteredData.filter(function (i) { return i.level_2 == d })[0].value
+                tooltip.html(`${val}`).style("visibility", "visible");
+                d3.select(this)
+                    .attr("fill", "orange");
+            })
+            .on("mousemove", function () {
+                tooltip
+                    .style("top", (event.pageY - 10) + "px")
+                    .style("left", (event.pageX + 10) + "px");
+            })
+            .on("mouseout", function () {
+                tooltip.html(``).style("visibility", "hidden");
+                d3.select(this).attr("fill", "black");
+            });
     }
 }
 
